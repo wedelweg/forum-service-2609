@@ -1,9 +1,6 @@
 package cohort_65.java.forumservice.person.controller;
 
-import cohort_65.java.forumservice.person.dto.CityPopulationDto;
-import cohort_65.java.forumservice.person.dto.PersonCreateDto;
-import cohort_65.java.forumservice.person.dto.PersonDto;
-import cohort_65.java.forumservice.person.dto.PersonUpdateDto;
+import cohort_65.java.forumservice.person.dto.*;
 import cohort_65.java.forumservice.person.service.PersonService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -16,6 +13,7 @@ import java.util.List;
 public class PersonController {
 
     private final PersonService service;
+    private final PersonService personService;
 
     @PostMapping
     public PersonDto addPerson(@RequestBody PersonCreateDto dto) {
@@ -61,4 +59,16 @@ public class PersonController {
     public PersonDto deletePerson(@PathVariable Long id) {
         return service.deletePerson(id);
     }
+
+    @GetMapping("/salary/{min}/{max}")
+    public Iterable<EmployeeDto> findEmployeeBySalary(@PathVariable Integer min, @PathVariable Integer max) {
+        return personService.findEmployeeBySalary(min, max);
+    }
+
+    @GetMapping("/children")
+    public Iterable<ChildDto> findAllChildren() {
+        return personService.findAllChildren();
+    }
+
+
 }

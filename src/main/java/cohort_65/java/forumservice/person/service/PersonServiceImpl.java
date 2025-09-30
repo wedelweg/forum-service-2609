@@ -1,15 +1,16 @@
 package cohort_65.java.forumservice.person.service;
 
 import cohort_65.java.forumservice.person.dao.PersonRepository;
-import cohort_65.java.forumservice.person.dto.CityPopulationDto;
-import cohort_65.java.forumservice.person.dto.PersonCreateDto;
-import cohort_65.java.forumservice.person.dto.PersonDto;
-import cohort_65.java.forumservice.person.dto.PersonUpdateDto;
+import cohort_65.java.forumservice.person.dto.*;
 import cohort_65.java.forumservice.person.exception.PersonExistsException;
 import cohort_65.java.forumservice.person.exception.PersonNotFoundException;
+import cohort_65.java.forumservice.person.model.Address;
+import cohort_65.java.forumservice.person.model.Child;
+import cohort_65.java.forumservice.person.model.Employee;
 import cohort_65.java.forumservice.person.model.Person;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -18,28 +19,26 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class PersonServiceImpl implements PersonService {
+public class PersonServiceImpl implements PersonService, CommandLineRunner {
 
     private final PersonRepository repository;
     private final ModelMapper modelMapper;
 
     @Override
     public PersonDto addPerson(PersonCreateDto dto) {
-
         if (repository.existsById(dto.getId())) {
             throw new PersonExistsException("Person with id " + dto.getId() + " already exists");
         }
-
         Person person = modelMapper.map(dto, Person.class);
         person = repository.save(person);
-        return modelMapper.map(person, PersonDto.class);
+        return mapToCorrectDto(person);
     }
 
     @Override
     public PersonDto getPerson(Long id) {
         Person person = repository.findById(id)
                 .orElseThrow(() -> new PersonNotFoundException("Person not found with id: " + id));
-        return modelMapper.map(person, PersonDto.class);
+        return mapToCorrectDto(person);
     }
 
     @Override
@@ -49,7 +48,7 @@ public class PersonServiceImpl implements PersonService {
             throw new PersonNotFoundException("No persons found with name: " + name);
         }
         return persons.stream()
-                .map(p -> modelMapper.map(p, PersonDto.class))
+                .map(this::mapToCorrectDto)
                 .toList();
     }
 
@@ -60,7 +59,7 @@ public class PersonServiceImpl implements PersonService {
             throw new PersonNotFoundException("No persons found in city: " + city);
         }
         return persons.stream()
-                .map(p -> modelMapper.map(p, PersonDto.class))
+                .map(this::mapToCorrectDto)
                 .toList();
     }
 
@@ -75,7 +74,7 @@ public class PersonServiceImpl implements PersonService {
             throw new PersonNotFoundException("No persons found between ages: " + from + " - " + to);
         }
         return persons.stream()
-                .map(p -> modelMapper.map(p, PersonDto.class))
+                .map(this::mapToCorrectDto)
                 .toList();
     }
 
@@ -85,7 +84,7 @@ public class PersonServiceImpl implements PersonService {
                 .orElseThrow(() -> new PersonNotFoundException("Person not found with id: " + id));
         person.setName(newName);
         person = repository.save(person);
-        return modelMapper.map(person, PersonDto.class);
+        return mapToCorrectDto(person);
     }
 
     @Override
@@ -98,7 +97,7 @@ public class PersonServiceImpl implements PersonService {
         if (dto.getBuilding() != 0) person.getAddress().setBuilding(dto.getBuilding());
 
         person = repository.save(person);
-        return modelMapper.map(person, PersonDto.class);
+        return mapToCorrectDto(person);
     }
 
     @Override
@@ -118,6 +117,54 @@ public class PersonServiceImpl implements PersonService {
         Person person = repository.findById(id)
                 .orElseThrow(() -> new PersonNotFoundException("Person not found with id: " + id));
         repository.delete(person);
-        return modelMapper.map(person, PersonDto.class);
+        return mapToCorrectDto(person);
+    }
+
+    @Override
+    public Iterable<EmployeeDto> findEmployeeBySalary(Integer min, Integer max) {
+        return repository.findEmployeesBySalaryBetween(min, max).stream()
+                .map(e -> modelMapper.map(e, EmployeeDto.class))
+                .toList();
+    }
+
+    @Override
+    public Iterable<ChildDto> findAllChildren() {
+        return repository.findAllChildren().stream()
+                .map(c -> modelMapper.map(c, ChildDto.class))
+                .toList();
+    }
+
+    private PersonDto mapToCorrectDto(Person person) {
+        if (person instanceof Child) {
+            return modelMapper.map(person, ChildDto.class);
+        } else if (person instanceof Employee) {
+            return modelMapper.map(person, EmployeeDto.class);
+        } else {
+            return modelMapper.map(person, PersonDto.class);
+        }
+    }
+
+    @Override
+    public void run(String... args) throws Exception {
+        if (repository.count() == 0) {
+            Person person = new Person(1000L,
+                    "John",
+                    LocalDate.now().minusYears(20),
+                    new Address("Berlin", "KantStr", 33));
+            Child child = new Child(2000L,
+                    "Peter",
+                    LocalDate.now().minusYears(5),
+                    new Address("Berlin", "KantStr", 33),
+                    "Kindergarten");
+            Employee employee = new Employee(
+                    3000L,
+                    "Karl",
+                    LocalDate.now().minusYears(30),
+                    new Address("Berlin", "KantStr", 63),
+                    "Apple", 8000);
+            repository.save(person);
+            repository.save(child);
+            repository.save(employee);
+        }
     }
 }

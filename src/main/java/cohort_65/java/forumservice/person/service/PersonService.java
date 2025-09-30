@@ -25,5 +25,6 @@ public interface PersonService {
     PersonDto deletePerson(Long id);
 
     Iterable<EmployeeDto> findEmployeeBySalary(Integer min, Integer max);
+
     Iterable<ChildDto> findAllChildren();
 }
